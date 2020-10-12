@@ -3,23 +3,44 @@
 //
 
 #include "tqueue.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 typedef struct TQueueNode {
     struct TQueueNode* next;
     void* data;
 } TQueueNode;
 
+unsigned long int tqueue_enqueue(TQueue* q, void* data){
+    TQueueNode* newNode=malloc(sizeof(TQueueNode));
+    newNode->data=data;
+    int position=0;
+    if(*q == NULL){
+        *q = newNode;
+    }else{
+        ++position;
+        TQueueNode* currentNode=*q;
+        while(currentNode->next != *q){
+            ++position;
+            currentNode=currentNode->next;
+        }
+        currentNode->next=newNode;
+    }
+    newNode->next=*q;
+    return position;
+}
+
 void *tqueue_pop(TQueue* q){
-    if(q == NULL){
+    if(*q == NULL){
         return NULL;
     } else{
-        TQueueNode* head = q;
+        TQueueNode* head = *q;
         void* data = head->data;
 
-        while(q->next != head){
-            q = q->next;
+        while((*q)->next != head){
+            *q = (*q)->next;
         }
-        TQueueNode* tail = q;
+        TQueueNode* tail = *q;
         tail->next = head->next;
         free(head);
 
@@ -33,6 +54,7 @@ unsigned long int tqueue_size(TQueue q){
     if(q == NULL){
         return size;
     } else{
+        ++size;
         TQueueNode* head = q;
 
         while(q->next != head){
