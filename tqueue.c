@@ -12,7 +12,7 @@ typedef struct TQueueNode {
 } TQueueNode;
 
 unsigned long int tqueue_enqueue(TQueue* q, void* data){
-    TQueueNode* newNode=malloc(sizeof(TQueueNode));
+    TQueueNode* newNode=(TQueueNode*) malloc(sizeof(TQueueNode));
     newNode->data=data;
     int position=0;
     if(*q == NULL){
