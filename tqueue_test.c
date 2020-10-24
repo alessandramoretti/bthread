@@ -2,7 +2,7 @@
 // Created by alemo on 07.10.2020.
 //
 
-#include "../tqueue.h"
+#include "tqueue.h"
 #include <stdio.h>
 #include <assert.h>
 
