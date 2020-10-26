@@ -21,7 +21,25 @@ __bthread_scheduler_private* bthread_get_scheduler(){
     return scheduler;
 }
 
+int bthread_create(bthread_t *bthread, const bthread_attr_t *attr,
+                   void *(*start_routine) (void *), void *arg){
 
+    static bthread_t idThreatCounter = 0;
+    __bthread_private *newThread = (__bthread_private*) malloc(sizeof(__bthread_private));
+    TQueue *schedulerQueue = bthread_get_scheduler()->queue;
+
+    tqueue_enqueue(&schedulerQueue, newThread);
+    newThread->tid = idThreatCounter++;
+    bthread = newThread->tid;
+    newThread->body = start_routine;
+    newThread->arg = arg;
+    newThread->state = __BTHREAD_READY;
+    newThread->attr = *attr;
+    newThread->stack = NULL;
+    newThread->retval = NULL;
+
+    return 0;
+}
 
 void bthread_exit(void *retval){
     __bthread_scheduler_private* scheduler = bthread_get_scheduler();
