@@ -4,10 +4,9 @@
 
 #include "bthread_private.h"
 #include <stdlib.h>
-#include "stdint.h"
-#include <string.h>
+#include <stdint.h>
 
-#define STACK_SIZE 1000
+#define STACK_SIZE 10000
 
 
 __bthread_scheduler_private* bthread_get_scheduler(){
@@ -23,14 +22,12 @@ __bthread_scheduler_private* bthread_get_scheduler(){
 
 int bthread_create(bthread_t *bthread, const bthread_attr_t *attr,
                    void *(*start_routine) (void *), void *arg){
-
-    static bthread_t idThreatCounter = 0;
     __bthread_private *newThread = (__bthread_private*) malloc(sizeof(__bthread_private));
-    TQueue *schedulerQueue = bthread_get_scheduler()->queue;
+    __bthread_scheduler_private* scheduler = bthread_get_scheduler();
 
-    tqueue_enqueue(&schedulerQueue, newThread);
-    newThread->tid = idThreatCounter++;
-    bthread = newThread->tid;
+    tqueue_enqueue(&scheduler->queue, newThread);
+    newThread->tid = scheduler->current_tid++;
+    *bthread = newThread->tid;
     newThread->body = start_routine;
     newThread->arg = arg;
     newThread->state = __BTHREAD_READY;
@@ -41,10 +38,21 @@ int bthread_create(bthread_t *bthread, const bthread_attr_t *attr,
     return 0;
 }
 
+void bthread_yield(){
+    __bthread_scheduler_private *scheduler = bthread_get_scheduler();
+    __bthread_private *currentThread = (__bthread_private*)tqueue_get_data(scheduler->current_item);
+    save_context(currentThread->context);
+    restore_context(scheduler->context);
+}
+
 void bthread_exit(void *retval){
     __bthread_scheduler_private* scheduler = bthread_get_scheduler();
     __bthread_private* current_thread = (__bthread_private*)tqueue_get_data(scheduler->current_item) ;
-    memcpy(current_thread->retval,retval,sizeof(retval));
+    if(retval != NULL){
+        current_thread->retval =retval;
+    }
+    current_thread->state = __BTHREAD_ZOMBIE;
+    bthread_yield();
 
 }
 
@@ -63,16 +71,15 @@ static TQueue bthread_get_queue_at(bthread_t bthread){
 static int bthread_check_if_zombie(bthread_t bthread, void **retval){
     TQueue queue = bthread_get_queue_at(bthread);
     __bthread_private* thread = (__bthread_private*)tqueue_get_data(queue);
-
     if(thread->state == __BTHREAD_ZOMBIE){
         if(retval != NULL){
-            memcpy(*retval,thread->retval, sizeof(thread->retval));
-            free(thread->stack);
-            tqueue_pop(&queue);
+            *retval = thread->retval;
         }
+        free(thread->stack);
+        tqueue_pop(&queue);
         return 1;
     }
-        return 0;
+    return 0;
 }
 
 int bthread_join(bthread_t bthread, void **retval)

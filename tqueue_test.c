@@ -40,5 +40,5 @@ void tqueue_test(){
 
 int main(){
     tqueue_test();
-    return 0;
+
 }
