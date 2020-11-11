@@ -16,6 +16,10 @@ static TQueue bthread_get_queue_at(bthread_t bthread);
 #define save_context(CONTEXT) sigsetjmp(CONTEXT, 1)
 #define restore_context(CONTEXT)  siglongjmp(CONTEXT, 1)
 
+//#define save_context(CONTEXT) setjmp(CONTEXT)
+//#define restore_context(CONTEXT)  longjmp(CONTEXT, 1)
+
+
 typedef struct {
     bthread_t tid;
     bthread_routine body;

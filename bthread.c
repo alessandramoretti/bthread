@@ -5,8 +5,8 @@
 #include "bthread_private.h"
 #include <stdlib.h>
 #include <stdint.h>
-
-#define STACK_SIZE 10000
+#include <stdio.h>
+#define STACK_SIZE 60000
 
 
 __bthread_scheduler_private* bthread_get_scheduler(){
@@ -73,10 +73,11 @@ static int bthread_check_if_zombie(bthread_t bthread, void **retval){
     __bthread_private* thread = (__bthread_private*)tqueue_get_data(queue);
     if(thread->state == __BTHREAD_ZOMBIE){
         if(retval != NULL){
-            *retval = thread->retval;
+           *retval = thread->retval;
         }
         free(thread->stack);
         tqueue_pop(&queue);
+        free(thread);
         return 1;
     }
     return 0;

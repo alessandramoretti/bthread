@@ -1,4 +1,4 @@
-all: tqueue_test bthread_test
+all: bthread_test
 
 bthread_test: bthread_test.o libbthread.a
 		gcc -lm -o bthread_test bthread_test.o -L. -lbthread
