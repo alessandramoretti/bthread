@@ -26,3 +26,5 @@ int bthread_join(bthread_t bthread, void **retval);
 void bthread_yield();
 
 void bthread_exit(void *retval);
+
+void bthread_sleep(double ms);

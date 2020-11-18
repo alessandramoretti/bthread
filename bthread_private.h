@@ -29,6 +29,7 @@ typedef struct {
     char* stack;
     jmp_buf context;
     void* retval;
+    double wake_up_time;
 } __bthread_private;
 
 typedef struct {
@@ -40,3 +41,4 @@ typedef struct {
 
 __bthread_scheduler_private* bthread_get_scheduler();
 void bthread_cleanup();
+double get_current_time_millis();

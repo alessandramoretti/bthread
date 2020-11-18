@@ -41,7 +41,10 @@ void *tqueue_pop(TQueue* q){
             *q = (*q)->next;
         }
         TQueueNode* tail = *q;
-        tail->next = head->next;
+        if(tail == head)
+            *q=NULL;
+        else
+            tail->next = head->next;
         free(head);
 
         return data;
@@ -85,4 +88,8 @@ void* tqueue_get_data(TQueue q){
     } else{
         return q->data;
     }
+}
+
+TQueue tqueue_get_next(TQueue q){
+    return q->next;
 }

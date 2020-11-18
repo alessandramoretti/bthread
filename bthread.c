@@ -39,10 +39,11 @@ int bthread_create(bthread_t *bthread, const bthread_attr_t *attr,
 }
 
 void bthread_yield(){
-    __bthread_scheduler_private *scheduler = bthread_get_scheduler();
-    __bthread_private *currentThread = (__bthread_private*)tqueue_get_data(scheduler->current_item);
-    save_context(currentThread->context);
-    restore_context(scheduler->context);
+    volatile __bthread_scheduler_private *scheduler = bthread_get_scheduler();
+    volatile __bthread_private *currentThread = (__bthread_private*)tqueue_get_data(scheduler->current_item);
+    if(!save_context(currentThread->context))
+        restore_context(scheduler->context);
+
 }
 
 void bthread_exit(void *retval){
@@ -57,30 +58,33 @@ void bthread_exit(void *retval){
 }
 
 static TQueue bthread_get_queue_at(bthread_t bthread){
-    __bthread_scheduler_private* scheduler = bthread_get_scheduler();
-    TQueue queue = scheduler->queue;
-    for(int i=0; i < tqueue_size(queue);i++){
-        queue= tqueue_at_offset(queue,i);
-        if((( __bthread_private*)tqueue_get_data(queue))->tid == bthread){
-            return queue;
-        }
+    TQueue head = bthread_get_scheduler()->queue;
+    while (tqueue_get_next(head)) {
+        if (((__bthread_private *) tqueue_get_data(head))->tid == bthread)break;
+        return tqueue_at_offset(head,1);
     }
-    return NULL;
+    return head;
 }
 
 static int bthread_check_if_zombie(bthread_t bthread, void **retval){
-    TQueue queue = bthread_get_queue_at(bthread);
-    __bthread_private* thread = (__bthread_private*)tqueue_get_data(queue);
-    if(thread->state == __BTHREAD_ZOMBIE){
-        if(retval != NULL){
-           *retval = thread->retval;
-        }
-        free(thread->stack);
-        tqueue_pop(&queue);
-        free(thread);
-        return 1;
-    }
-    return 0;
+    TQueue thread = bthread_get_queue_at(bthread);
+    __bthread_private *found = (__bthread_private *) tqueue_get_data(thread);
+
+    if (found->tid == bthread && found->state != __BTHREAD_ZOMBIE)
+        return 0;
+
+    if (retval)*retval = (found->retval);
+
+    free(found->stack);
+
+    if (found == tqueue_get_data(bthread_get_scheduler()->queue))
+        free(tqueue_pop(&bthread_get_scheduler()->queue));
+    else
+        free(tqueue_pop(&thread));
+
+    bthread_get_scheduler()->current_item=bthread_get_scheduler()->queue;
+
+    return 1;
 }
 
 int bthread_join(bthread_t bthread, void **retval)
@@ -93,6 +97,8 @@ int bthread_join(bthread_t bthread, void **retval)
     do {
         scheduler->current_item = tqueue_at_offset(scheduler->current_item, 1);
         tp = (__bthread_private*) tqueue_get_data(scheduler->current_item);
+        if(tp->state == __BTHREAD_SLEEPING && get_current_time_millis() >= tp->wake_up_time)
+            tp->state = __BTHREAD_READY;
     } while (tp->state != __BTHREAD_READY);
     if (tp->stack) {
         restore_context(tp->context);
@@ -113,3 +119,18 @@ int bthread_join(bthread_t bthread, void **retval)
 
 }
 
+void bthread_sleep(double ms){
+    __bthread_scheduler_private* scheduler = bthread_get_scheduler();
+    __bthread_private *thread = (__bthread_private*) tqueue_get_data(scheduler->current_item);
+    thread->state=__BTHREAD_SLEEPING;
+    thread->wake_up_time = get_current_time_millis() + ms;
+    bthread_yield();
+}
+
+
+double get_current_time_millis()
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return (tv.tv_sec) * 1000 + (tv.tv_usec) / 1000 ;
+}

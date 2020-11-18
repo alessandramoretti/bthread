@@ -37,8 +37,8 @@ void tqueue_test(){
     assert(newQueue == q);
 
 }
-
-int main(){
-    tqueue_test();
-
-}
+//
+//int main(){
+//    tqueue_test();
+//
+//}
