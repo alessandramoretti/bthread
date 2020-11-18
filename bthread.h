@@ -29,4 +29,8 @@ void bthread_exit(void *retval);
 
 void bthread_sleep(double ms);
 
+int bthread_cancel(bthread_t bthread);
+
+void bthread_testcancel(void);
+
 #endif //BTHREAD_BTHREAD_H

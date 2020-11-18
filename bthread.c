@@ -136,3 +136,15 @@ double get_current_time_millis()
     gettimeofday(&tv, NULL);
     return (tv.tv_sec) * 1000 + (tv.tv_usec) / 1000 ;
 }
+
+int bthread_cancel(bthread_t bthread){
+    __bthread_private* thread = (__bthread_private*) tqueue_get_data(bthread_get_queue_at(bthread));
+    thread->cancel_req=1;
+
+}
+
+void bthread_testcancel(void){
+    __bthread_private* thread = (__bthread_private*) tqueue_get_data(bthread_get_scheduler()->current_item);
+    if(thread->cancel_req)
+        bthread_exit((void**)-1);
+}
