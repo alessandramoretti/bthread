@@ -89,7 +89,3 @@ void* tqueue_get_data(TQueue q){
         return q->data;
     }
 }
-
-TQueue tqueue_get_next(TQueue q){
-    return q->next;
-}
