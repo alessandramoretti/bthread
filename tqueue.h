@@ -5,8 +5,6 @@
 #ifndef BTHREAD_TQUEUE_H
 #define BTHREAD_TQUEUE_H
 
-#endif //BTHREAD_TQUEUE_H
-
 struct TQueueNode;
 typedef struct TQueueNode* TQueue;
 
@@ -29,3 +27,5 @@ void* tqueue_get_data(TQueue q);
 
 TQueue tqueue_get_next(TQueue q);
 
+
+#endif //BTHREAD_TQUEUE_H

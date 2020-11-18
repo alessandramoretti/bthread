@@ -58,31 +58,33 @@ void bthread_exit(void *retval){
 }
 
 static TQueue bthread_get_queue_at(bthread_t bthread){
-    TQueue head = bthread_get_scheduler()->queue;
-    while (tqueue_get_next(head)) {
-        if (((__bthread_private *) tqueue_get_data(head))->tid == bthread)break;
-        return tqueue_at_offset(head,1);
+    __bthread_scheduler_private* scheduler = bthread_get_scheduler();
+    TQueue queue = scheduler->queue;
+    for(int i=0; i < tqueue_size(queue);i++){
+        queue= tqueue_at_offset(queue,i);
+        if((( __bthread_private*)tqueue_get_data(queue))->tid == bthread){
+            return queue;
+        }
     }
-    return head;
+    return NULL;
 }
 
 static int bthread_check_if_zombie(bthread_t bthread, void **retval){
-    TQueue thread = bthread_get_queue_at(bthread);
-    __bthread_private *found = (__bthread_private *) tqueue_get_data(thread);
+    TQueue queue = bthread_get_queue_at(bthread);
+    __bthread_private *thread = (__bthread_private *) tqueue_get_data(queue);
 
-    if (found->tid == bthread && found->state != __BTHREAD_ZOMBIE)
+    if (thread->state != __BTHREAD_ZOMBIE)
         return 0;
 
-    if (retval)*retval = (found->retval);
+    if (retval)
+        *retval = (thread->retval);
 
-    free(found->stack);
+    free(thread->stack);
 
-    if (found == tqueue_get_data(bthread_get_scheduler()->queue))
+    if (thread == tqueue_get_data(bthread_get_scheduler()->queue))
         free(tqueue_pop(&bthread_get_scheduler()->queue));
     else
-        free(tqueue_pop(&thread));
-
-    bthread_get_scheduler()->current_item=bthread_get_scheduler()->queue;
+        free(tqueue_pop(&queue));
 
     return 1;
 }

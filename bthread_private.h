@@ -9,7 +9,7 @@
 #ifndef BTHREAD_BTHREAD_PRIVATE_H
 #define BTHREAD_BTHREAD_PRIVATE_H
 
-#endif //BTHREAD_BTHREAD_PRIVATE_H
+
 
 static int bthread_check_if_zombie(bthread_t bthread, void **retval);
 static TQueue bthread_get_queue_at(bthread_t bthread);
@@ -42,3 +42,5 @@ typedef struct {
 __bthread_scheduler_private* bthread_get_scheduler();
 void bthread_cleanup();
 double get_current_time_millis();
+
+#endif //BTHREAD_BTHREAD_PRIVATE_H

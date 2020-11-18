@@ -5,7 +5,7 @@
 #ifndef BTHREAD_BTHREAD_H
 #define BTHREAD_BTHREAD_H
 
-#endif //BTHREAD_BTHREAD_H
+
 
 
 typedef unsigned long int bthread_t;
@@ -28,3 +28,5 @@ void bthread_yield();
 void bthread_exit(void *retval);
 
 void bthread_sleep(double ms);
+
+#endif //BTHREAD_BTHREAD_H

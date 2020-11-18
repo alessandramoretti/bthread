@@ -1,6 +1,6 @@
-#include "bthread.h"
 #include <assert.h>
 #include <stdio.h>
+#include "bthread.h"
 
 bthread_t t1, t2, t3;
 
@@ -13,7 +13,7 @@ void *thread2(void *arg){
 }
 
 void *thread3(void *arg){
-    bthread_sleep(1000);
+    bthread_sleep(5000);
     return NULL;
 }
 
@@ -36,5 +36,6 @@ void testSleep(){
 int main(){
     testCreateAndJoin();
     testSleep();
+
     return 0;
 }
