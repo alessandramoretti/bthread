@@ -34,6 +34,7 @@ int bthread_create(bthread_t *bthread, const bthread_attr_t *attr,
     newThread->attr = *attr;
     newThread->stack = NULL;
     newThread->retval = NULL;
+    newThread->cancel_req = 0;
 
     return 0;
 }
