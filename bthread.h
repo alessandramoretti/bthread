@@ -33,4 +33,6 @@ int bthread_cancel(bthread_t bthread);
 
 void bthread_testcancel(void);
 
+void bthread_printf(const char* format, ...);
+
 #endif //BTHREAD_BTHREAD_H

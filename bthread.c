@@ -6,8 +6,13 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdbool.h>
+#include <signal.h>
+#include <pthread.h>
+#include <sys/time.h>
+#include <stdarg.h>
+#include <unistd.h>
 #define STACK_SIZE 60000
-
 
 __bthread_scheduler_private* bthread_get_scheduler(){
     static __bthread_scheduler_private* scheduler=NULL;  //singleton pattern
@@ -34,21 +39,24 @@ int bthread_create(bthread_t *bthread, const bthread_attr_t *attr,
     newThread->attr = *attr;
     newThread->stack = NULL;
     newThread->retval = NULL;
-
+    newThread->cancel_req = 0;
     return 0;
 }
 
 void bthread_yield(){
-    volatile __bthread_scheduler_private *scheduler = bthread_get_scheduler();
-    volatile __bthread_private *currentThread = (__bthread_private*)tqueue_get_data(scheduler->current_item);
-    if(!save_context(currentThread->context))
+    bthread_block_timer_signal();
+    printf("Yeld");
+    __bthread_scheduler_private *scheduler = bthread_get_scheduler();
+    __bthread_private *currentThread = (__bthread_private*)tqueue_get_data(scheduler->current_item);
+    if(!save_context(currentThread->context)){
         restore_context(scheduler->context);
-
+    }
+    bthread_unblock_timer_signal();
 }
 
 void bthread_exit(void *retval){
-    __bthread_scheduler_private* scheduler = bthread_get_scheduler();
-    __bthread_private* current_thread = (__bthread_private*)tqueue_get_data(scheduler->current_item) ;
+    volatile __bthread_scheduler_private* scheduler = bthread_get_scheduler();
+    volatile __bthread_private* current_thread = (__bthread_private*)tqueue_get_data(scheduler->current_item) ;
     if(retval != NULL){
         current_thread->retval =retval;
     }
@@ -91,6 +99,8 @@ static int bthread_check_if_zombie(bthread_t bthread, void **retval){
 
 int bthread_join(bthread_t bthread, void **retval)
 {
+    bthread_block_timer_signal();
+    bthread_setup_timer();
     volatile __bthread_scheduler_private* scheduler = bthread_get_scheduler();
     scheduler->current_item = scheduler->queue;
     save_context(scheduler->context);
@@ -99,8 +109,9 @@ int bthread_join(bthread_t bthread, void **retval)
     do {
         scheduler->current_item = tqueue_at_offset(scheduler->current_item, 1);
         tp = (__bthread_private*) tqueue_get_data(scheduler->current_item);
-        if(tp->state == __BTHREAD_SLEEPING && get_current_time_millis() >= tp->wake_up_time)
+        if(tp->state == __BTHREAD_SLEEPING && get_current_time_millis() >= tp->wake_up_time) {
             tp->state = __BTHREAD_READY;
+        }
     } while (tp->state != __BTHREAD_READY);
     if (tp->stack) {
         restore_context(tp->context);
@@ -116,14 +127,16 @@ int bthread_join(bthread_t bthread, void **retval)
 #else
         asm __volatile__("movl %0, %%esp" :: "r"((intptr_t) target));
 #endif
+
+        bthread_unblock_timer_signal();
         bthread_exit(tp->body(tp->arg));
     }
 
 }
 
 void bthread_sleep(double ms){
-    __bthread_scheduler_private* scheduler = bthread_get_scheduler();
-    __bthread_private *thread = (__bthread_private*) tqueue_get_data(scheduler->current_item);
+    volatile __bthread_scheduler_private* scheduler = bthread_get_scheduler();
+    volatile __bthread_private *thread = (__bthread_private*) tqueue_get_data(scheduler->current_item);
     thread->state=__BTHREAD_SLEEPING;
     thread->wake_up_time = get_current_time_millis() + ms;
     bthread_yield();
@@ -138,13 +151,56 @@ double get_current_time_millis()
 }
 
 int bthread_cancel(bthread_t bthread){
-    __bthread_private* thread = (__bthread_private*) tqueue_get_data(bthread_get_queue_at(bthread));
+    bthread_block_timer_signal();
+    volatile __bthread_private* thread = (__bthread_private*) tqueue_get_data(bthread_get_queue_at(bthread));
+    printf("%ld\n",thread->tid);
     thread->cancel_req=1;
+    bthread_unblock_timer_signal();
 
 }
 
 void bthread_testcancel(void){
-    __bthread_private* thread = (__bthread_private*) tqueue_get_data(bthread_get_scheduler()->current_item);
+    write(1,"Cancel\n",7);
+    volatile __bthread_private* thread = (__bthread_private*) tqueue_get_data(bthread_get_scheduler()->current_item);
     if(thread->cancel_req)
         bthread_exit((void**)-1);
+}
+
+static void bthread_setup_timer()
+{
+    static bool initialized = false;
+    if (!initialized) {
+        signal(SIGVTALRM, (void (*)()) bthread_yield);
+        struct itimerval time;
+        time.it_interval.tv_sec = 0;
+        time.it_interval.tv_usec = QUANTUM_USEC;
+        time.it_value.tv_sec = 0;
+        time.it_value.tv_usec = QUANTUM_USEC;
+        initialized = true;
+        setitimer(ITIMER_REAL, &time, NULL);
+    }
+}
+
+void bthread_block_timer_signal(){
+    sigset_t sigSet;
+    sigemptyset(&sigSet);
+    sigaddset(&sigSet, SIGVTALRM);
+    sigprocmask(SIG_BLOCK, &sigSet, NULL);
+}
+
+void bthread_unblock_timer_signal(){
+    sigset_t sigSet;
+    sigemptyset(&sigSet);
+    sigaddset(&sigSet, SIGVTALRM);
+    sigprocmask(SIG_UNBLOCK, &sigSet, NULL);
+}
+
+void bthread_printf(const char* format, ...)
+{
+    bthread_block_timer_signal();
+    va_list args;
+    va_start (args, format);
+    vprintf (format, args);
+    va_end (args);
+    bthread_unblock_timer_signal();
 }

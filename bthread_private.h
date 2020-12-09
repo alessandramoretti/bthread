@@ -15,6 +15,7 @@ static int bthread_check_if_zombie(bthread_t bthread, void **retval);
 static TQueue bthread_get_queue_at(bthread_t bthread);
 #define save_context(CONTEXT) sigsetjmp(CONTEXT, 1)
 #define restore_context(CONTEXT)  siglongjmp(CONTEXT, 1)
+#define QUANTUM_USEC 1000000
 
 //#define save_context(CONTEXT) setjmp(CONTEXT)
 //#define restore_context(CONTEXT)  longjmp(CONTEXT, 1)
@@ -43,5 +44,9 @@ typedef struct {
 __bthread_scheduler_private* bthread_get_scheduler();
 void bthread_cleanup();
 double get_current_time_millis();
+
+static void bthread_setup_timer();
+void bthread_block_timer_signal();
+void bthread_unblock_timer_signal();
 
 #endif //BTHREAD_BTHREAD_PRIVATE_H

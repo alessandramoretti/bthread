@@ -46,7 +46,6 @@ void *tqueue_pop(TQueue* q){
         else
             tail->next = head->next;
         free(head);
-
         return data;
     }
 }
