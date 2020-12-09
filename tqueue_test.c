@@ -32,13 +32,8 @@ void tqueue_test(){
 
     assert(tqueue_at_offset(q,0) == q);
 
-    TQueue newQueue=tqueue_at_offset(q,1);
-    tqueue_pop(&q);
-    assert(newQueue == q);
-
 }
-//
-//int main(){
-//    tqueue_test();
-//
-//}
+
+int main(){
+    tqueue_test();
+}

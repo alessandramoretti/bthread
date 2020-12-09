@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include "bthread.h"
 
-bthread_t t1, t2, t3, t4;
+bthread_t t1, t2, t3, t4,t5,t6;
 
 void *thread1(void *arg){
     return (void*) 42;
@@ -13,7 +13,7 @@ void *thread2(void *arg){
 }
 
 void *thread3(void *arg){
-    bthread_sleep(5000);
+    bthread_sleep(2000);
     return NULL;
 }
 
@@ -23,6 +23,15 @@ void *thread4(void *arg){
     }
 }
 
+void *thread5(void *arg){
+    while(1){
+      bthread_testcancel();
+    }
+}
+
+void *thread6(void *arg){
+    bthread_cancel(t5);
+}
 
 void testCreateAndJoin(){
     bthread_create(&t1,NULL,&thread1,NULL);
@@ -48,9 +57,19 @@ void testCancel(){
     assert(status == -1);
 }
 
+void testPreemption(){
+    bthread_create(&t6,NULL,&thread6,NULL);
+    bthread_create(&t5,NULL,&thread5,NULL);
+
+    bthread_join(t5,NULL);
+    bthread_join(t6,NULL);
+
+}
+
 int main(){
     testCreateAndJoin();
     testSleep();
     testCancel();
+    testPreemption();
     return 0;
 }
