@@ -21,6 +21,8 @@ __bthread_scheduler_private* bthread_get_scheduler(){
         scheduler->queue = NULL;
         scheduler->current_item = NULL;
         scheduler->current_tid = 0;
+        sigemptyset(&(scheduler->sig_set));
+        sigaddset(&(scheduler->sig_set), SIGVTALRM);
     }
     return scheduler;
 }
@@ -45,7 +47,6 @@ int bthread_create(bthread_t *bthread, const bthread_attr_t *attr,
 
 void bthread_yield(){
     bthread_block_timer_signal();
-    printf("Yeld");
     __bthread_scheduler_private *scheduler = bthread_get_scheduler();
     __bthread_private *currentThread = (__bthread_private*)tqueue_get_data(scheduler->current_item);
     if(!save_context(currentThread->context)){
@@ -151,16 +152,12 @@ double get_current_time_millis()
 }
 
 int bthread_cancel(bthread_t bthread){
-    bthread_block_timer_signal();
     volatile __bthread_private* thread = (__bthread_private*) tqueue_get_data(bthread_get_queue_at(bthread));
-    printf("%ld\n",thread->tid);
     thread->cancel_req=1;
-    bthread_unblock_timer_signal();
 
 }
 
 void bthread_testcancel(void){
-    write(1,"Cancel\n",7);
     volatile __bthread_private* thread = (__bthread_private*) tqueue_get_data(bthread_get_scheduler()->current_item);
     if(thread->cancel_req)
         bthread_exit((void**)-1);
@@ -177,22 +174,16 @@ static void bthread_setup_timer()
         time.it_value.tv_sec = 0;
         time.it_value.tv_usec = QUANTUM_USEC;
         initialized = true;
-        setitimer(ITIMER_REAL, &time, NULL);
+        setitimer(ITIMER_VIRTUAL, &time, NULL);
     }
 }
 
 void bthread_block_timer_signal(){
-    sigset_t sigSet;
-    sigemptyset(&sigSet);
-    sigaddset(&sigSet, SIGVTALRM);
-    sigprocmask(SIG_BLOCK, &sigSet, NULL);
+    sigprocmask(SIG_BLOCK, &(bthread_get_scheduler()->sig_set), NULL);
 }
 
 void bthread_unblock_timer_signal(){
-    sigset_t sigSet;
-    sigemptyset(&sigSet);
-    sigaddset(&sigSet, SIGVTALRM);
-    sigprocmask(SIG_UNBLOCK, &sigSet, NULL);
+    sigprocmask(SIG_UNBLOCK, &(bthread_get_scheduler()->sig_set), NULL);
 }
 
 void bthread_printf(const char* format, ...)

@@ -5,6 +5,7 @@
 #include "bthread.h"
 #include "tqueue.h"
 #include <setjmp.h>
+#include <signal.h>
 
 #ifndef BTHREAD_BTHREAD_PRIVATE_H
 #define BTHREAD_BTHREAD_PRIVATE_H
@@ -15,10 +16,7 @@ static int bthread_check_if_zombie(bthread_t bthread, void **retval);
 static TQueue bthread_get_queue_at(bthread_t bthread);
 #define save_context(CONTEXT) sigsetjmp(CONTEXT, 1)
 #define restore_context(CONTEXT)  siglongjmp(CONTEXT, 1)
-#define QUANTUM_USEC 1000000
-
-//#define save_context(CONTEXT) setjmp(CONTEXT)
-//#define restore_context(CONTEXT)  longjmp(CONTEXT, 1)
+#define QUANTUM_USEC 100000
 
 
 typedef struct {
@@ -39,6 +37,7 @@ typedef struct {
     TQueue current_item;
     jmp_buf context;
     bthread_t current_tid;
+    sigset_t sig_set;
 } __bthread_scheduler_private;
 
 __bthread_scheduler_private* bthread_get_scheduler();

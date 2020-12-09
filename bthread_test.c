@@ -67,9 +67,9 @@ void testPreemption(){
 }
 
 int main(){
-//    testCreateAndJoin();
-//    testSleep();
-//    testCancel();
+    testCreateAndJoin();
+    testSleep();
+    testCancel();
     testPreemption();
     return 0;
 }
