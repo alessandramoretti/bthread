@@ -23,6 +23,8 @@ __bthread_scheduler_private* bthread_get_scheduler(){
         scheduler->current_tid = 0;
         sigemptyset(&(scheduler->sig_set));
         sigaddset(&(scheduler->sig_set), SIGVTALRM);
+        scheduler->scheduling_routine = &round_robin;
+        srand( time(NULL));
     }
     return scheduler;
 }
@@ -42,9 +44,11 @@ int bthread_create(bthread_t *bthread, const bthread_attr_t *attr,
     newThread->stack = NULL;
     newThread->retval = NULL;
     newThread->cancel_req = 0;
-
+    newThread->priority = DEFAULT_PRIORITY;
+    newThread->quantum_counter = 0;
     return 0;
 }
+
 
 void bthread_yield(){
     bthread_block_timer_signal();
@@ -109,7 +113,7 @@ int bthread_join(bthread_t bthread, void **retval)
     if (bthread_check_if_zombie(bthread, retval)) return 0;
     __bthread_private* tp;
     do {
-        scheduler->current_item = tqueue_at_offset(scheduler->current_item, 1);
+        (scheduler->scheduling_routine)();
         tp = (__bthread_private*) tqueue_get_data(scheduler->current_item);
         if(tp->state == __BTHREAD_SLEEPING && get_current_time_millis() >= tp->wake_up_time) {
             tp->state = __BTHREAD_READY;
@@ -195,4 +199,41 @@ void bthread_printf(const char* format, ...)
     vprintf (format, args);
     va_end (args);
     bthread_unblock_timer_signal();
+}
+
+void round_robin(){
+    __bthread_scheduler_private* scheduler = bthread_get_scheduler();
+    scheduler->current_item = tqueue_at_offset(scheduler->current_item, 1);
+}
+
+void random_scheduling(){
+    __bthread_scheduler_private* scheduler = bthread_get_scheduler();
+    unsigned int offset = rand() % tqueue_size(scheduler->queue);
+    scheduler->current_item = tqueue_at_offset(scheduler->current_item, offset);
+}
+
+
+void priority_scheduling(){
+    __bthread_scheduler_private* scheduler = bthread_get_scheduler();
+    //TODO
+}
+
+void bthread_set_scheduling_policy(scheduling_policy policy){
+    __bthread_scheduler_private* scheduler = bthread_get_scheduler();
+    switch(policy){
+        case ROUND_ROBIN:
+            scheduler->scheduling_routine = &round_robin;
+            break;
+        case RANDOM:
+            scheduler->scheduling_routine = &random_scheduling;
+            break;
+    }
+}
+
+bthread_set_priority(bthread_t tid, unsigned int priority){
+    if(priority > MAX_PRIORITY)
+        priority = MAX_PRIORITY;
+    __bthread_scheduler_private* scheduler = bthread_get_scheduler();
+    __bthread_private* thread = (__bthread_private*)tqueue_get_data(bthread_get_queue_at(tid));
+    thread->priority = priority;
 }

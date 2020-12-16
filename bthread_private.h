@@ -19,6 +19,8 @@ static TQueue bthread_get_queue_at(bthread_t bthread);
 #define QUANTUM_USEC 100000
 
 
+typedef void (*bthread_scheduling_routine)();
+
 typedef struct {
     bthread_t tid;
     bthread_routine body;
@@ -30,6 +32,8 @@ typedef struct {
     void* retval;
     double wake_up_time;
     int cancel_req;
+    unsigned int priority;
+    unsigned int quantum_counter;
 } __bthread_private;
 
 typedef struct {
@@ -38,7 +42,10 @@ typedef struct {
     jmp_buf context;
     bthread_t current_tid;
     sigset_t sig_set;
+    bthread_scheduling_routine scheduling_routine;
 } __bthread_scheduler_private;
+
+
 
 __bthread_scheduler_private* bthread_get_scheduler();
 void bthread_cleanup();
@@ -47,5 +54,8 @@ double get_current_time_millis();
 static void bthread_setup_timer();
 void bthread_block_timer_signal();
 void bthread_unblock_timer_signal();
+void round_robin();
+void random_scheduling();
+void priority_scheduling();
 
 #endif //BTHREAD_BTHREAD_PRIVATE_H

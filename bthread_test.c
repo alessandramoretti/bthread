@@ -5,14 +5,17 @@
 bthread_t t1, t2, t3, t4,t5,t6;
 
 void *thread1(void *arg){
+    bthread_printf("Thread 1");
     return (void*) 42;
 }
 
 void *thread2(void *arg){
+    bthread_printf("Thread 2");
     return NULL;
 }
 
 void *thread3(void *arg){
+    bthread_printf("Thread 3");
     bthread_sleep(2000);
     return NULL;
 }
@@ -66,10 +69,22 @@ void testPreemption(){
 
 }
 
+
+void testRandomScheduling(){
+    printf("TEST RANDOM:\n");
+    bthread_create(&t1,NULL,&thread1,NULL);
+    bthread_create(&t2,NULL,&thread2,NULL);
+
+    bthread_set_scheduling_policy(RANDOM);
+    bthread_join(t1,NULL);
+    bthread_join(t2,NULL);
+}
+
 int main(){
     testCreateAndJoin();
     testSleep();
     testCancel();
     testPreemption();
+    testRandomScheduling();
     return 0;
 }
