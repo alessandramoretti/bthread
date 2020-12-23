@@ -2,10 +2,16 @@
 #include <stdio.h>
 #include "bthread.h"
 #include "tmutex.h"
+#include "tbarrier.h"
+#include "tcondition.h"
+#include "tsemaphore.h"
 
 bthread_t t1, t2, t3, t4,t5,t6,t7,t8,t9;
 unsigned int counter1, counter2;
 bthread_mutex_t mutex;
+bthread_barrier_t barrier;
+bthread_cond_t condition;
+bthread_sem_t semaphore;
 
 void *thread1(void *arg){
     bthread_printf("Thread 1");
@@ -31,7 +37,7 @@ void *thread4(void *arg){
 
 void *thread5(void *arg){
     while(1){
-      bthread_testcancel();
+        bthread_testcancel();
     }
 }
 
@@ -108,7 +114,7 @@ void testRandomScheduling(){
 void testPriorityScheduling(){
     bthread_create(&t7,NULL,&thread7,NULL);
     bthread_create(&t8,NULL,&thread8,NULL);
-   bthread_create(&t9,NULL,&thread9,NULL);
+    bthread_create(&t9,NULL,&thread9,NULL);
 
     bthread_set_priority(t7,2);
     bthread_set_priority(t8,MAX_PRIORITY);
@@ -136,21 +142,95 @@ void testMutex(){
     bthread_join(t2,NULL);
 }
 
+void *threadBarrier(void *arg){
+    bthread_printf("Thread %d reached barrier\n", (int*)arg);
+    bthread_barrier_wait(&barrier);
+    bthread_printf("Thread %d get over barrier\n", (int*)arg);
+}
 
+void testBarrier(){
+    bthread_create(&t1,NULL,&threadBarrier,(void*)1);
+    bthread_create(&t2,NULL,&threadBarrier,(void*)2);
+
+    bthread_join(t1,NULL);
+    bthread_join(t2,NULL);
+}
+
+void *threadConditionWait(void *arg){
+    bthread_printf("Thread %d wait on condition\n", (int*)arg);
+    bthread_cond_wait(&condition,&mutex);
+    bthread_printf("Thread %d wake up\n", (int*)arg);
+}
+
+void *threadConditionSignal(void *arg){
+    bthread_sleep(1000);
+    bthread_printf("Thread %d wait signal on condition\n", (int*)arg);
+    bthread_cond_signal(&condition);
+}
+
+void *threadConditionBroadcast(void *arg){
+    bthread_sleep(2000);
+    bthread_printf("Thread %d wait broadcast on condition\n", (int*)arg);
+    bthread_cond_broadcast(&condition);
+}
+
+void testCondition(){
+    bthread_create(&t1,NULL,&threadConditionWait,(void*)1);
+    bthread_create(&t2,NULL,&threadConditionWait,(void*)2);
+    bthread_create(&t3,NULL,&threadConditionWait,(void*)3);
+
+    bthread_create(&t4,NULL,&threadConditionSignal,(void*)4);
+    bthread_create(&t5,NULL,&threadConditionBroadcast,(void*)5);
+
+
+    bthread_join(t1,NULL);
+    bthread_join(t2,NULL);
+    bthread_join(t3,NULL);
+    bthread_join(t4,NULL);
+    bthread_join(t5,NULL);
+}
+
+void *threadSemaphore(void *arg){
+    bthread_printf("Thread %d wait on semaphore\n", (int*)arg);
+    bthread_sem_wait(&semaphore);
+    bthread_printf("Thread %d takes semaphore\n", (int*)arg);
+    bthread_sleep(2000);
+    bthread_sem_post(&semaphore);
+    bthread_printf("Thread %d release semaphore\n", (int*)arg);
+}
+
+void testSemaphore(){
+    bthread_create(&t1,NULL,&threadSemaphore,(void*)1);
+    bthread_create(&t2,NULL,&threadSemaphore,(void*)2);
+    bthread_create(&t3,NULL,&threadSemaphore,(void*)3);
+
+    bthread_join(t1,NULL);
+    bthread_join(t2,NULL);
+    bthread_join(t3,NULL);
+}
 
 
 int main(){
 
     bthread_mutex_init(&mutex, NULL);
+    bthread_barrier_init(&barrier,NULL,2);
+    bthread_cond_init(&condition,NULL);
+    bthread_sem_init(&semaphore, NULL, 2);
 
     testCreateAndJoin();
     testSleep();
     testCancel();
     testPreemption();
     testRandomScheduling();
-   testPriorityScheduling();
+    testPriorityScheduling();
     testMutex();
+    testBarrier();
+    testCondition();
+    testSemaphore();
 
     bthread_mutex_destroy(&mutex);
+    bthread_barrier_destroy(&barrier);
+    bthread_cond_destroy(&condition);
+    bthread_sem_destroy(&semaphore);
     return 0;
 }

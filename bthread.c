@@ -217,7 +217,7 @@ void random_scheduling(){
 void priority_scheduling(){
     __bthread_scheduler_private* scheduler = bthread_get_scheduler();
     __bthread_private* currentThread = (__bthread_private*)tqueue_get_data((scheduler->current_item));
-    if(currentThread->quantum_counter >= currentThread->priority){
+    if(currentThread->state != __BTHREAD_READY || currentThread->quantum_counter >= currentThread->priority){
         currentThread->quantum_counter = 0;
         scheduler->current_item = tqueue_at_offset(scheduler->current_item, 1);
     }

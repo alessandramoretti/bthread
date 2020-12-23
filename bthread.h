@@ -9,6 +9,7 @@
 #define DEFAULT_PRIORITY 5
 typedef unsigned long int bthread_t;
 
+
 typedef enum {ROUND_ROBIN, RANDOM, PRIORITY} scheduling_policy;
 
 typedef enum { __BTHREAD_READY = 0, __BTHREAD_BLOCKED, __BTHREAD_SLEEPING,
@@ -40,4 +41,6 @@ void bthread_printf(const char* format, ...);
 void bthread_set_scheduling_policy(scheduling_policy policy);
 
 void bthread_set_priority(bthread_t tid, unsigned int priority);
+
+
 #endif //BTHREAD_BTHREAD_H
