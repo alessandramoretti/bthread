@@ -14,7 +14,6 @@
 #include <unistd.h>
 #define STACK_SIZE 60000
 
-
 __bthread_scheduler_private* bthread_get_scheduler(){
     static __bthread_scheduler_private* scheduler=NULL;  //singleton pattern
     if(scheduler == NULL){

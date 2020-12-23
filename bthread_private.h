@@ -18,11 +18,6 @@ static TQueue bthread_get_queue_at(bthread_t bthread);
 #define restore_context(CONTEXT)  siglongjmp(CONTEXT, 1)
 #define QUANTUM_USEC 100000
 
-#ifdef TRACING
-#define trace(...) printf (stderr, __VA_ARGS__)
-#else
-#define trace(...)
-#endif
 
 typedef void (*bthread_scheduling_routine)();
 
@@ -63,5 +58,17 @@ void round_robin();
 void random_scheduling();
 void priority_scheduling();
 
+
+#ifdef TRACING
+#define trace(...) printf (__VA_ARGS__)
+#define atomic_trace(...) {\
+            bthread_block_timer_signal(); \
+            printf (__VA_ARGS__);\
+            bthread_unblock_timer_signal();\
+           }
+#else
+#define trace(...)
+#define atomic_trace(...)
+#endif
 
 #endif //BTHREAD_BTHREAD_PRIVATE_H

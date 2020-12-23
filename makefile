@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -g -fno-stack-protector -w
+CFLAGS = -g -fno-stack-protector -w -DTRACING
 
 all: bthread_test tqueue_test matrix_cube readers_writers_3 readers_writers_2 readers_writers_1 sleeping_barber producer_consumer_cond producer_consumer philosopher
 
