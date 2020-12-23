@@ -19,7 +19,10 @@ int bthread_cond_destroy(bthread_cond_t* c){
 
 int bthread_cond_wait(bthread_cond_t* c, bthread_mutex_t* mutex){
     bthread_block_timer_signal();
+
+    bthread_mutex_unlock(mutex);
     __bthread_scheduler_private* scheduler = bthread_get_scheduler();
+
 
     volatile __bthread_private* bthread = (__bthread_private*)tqueue_get_data(scheduler->current_item);
 
@@ -27,14 +30,20 @@ int bthread_cond_wait(bthread_cond_t* c, bthread_mutex_t* mutex){
     bthread->state = __BTHREAD_BLOCKED;
     bthread_yield();
 
+    bthread_mutex_lock(mutex);
     return 0;
 }
 
 int bthread_cond_signal(bthread_cond_t* c){
     bthread_block_timer_signal();
     __bthread_private* signal = tqueue_pop(&c->waiting_list);
-    signal->state = __BTHREAD_READY;
-    bthread_yield(); //TODO perchè devo fare yield?
+
+    if(signal != NULL){
+        signal->state = __BTHREAD_READY;
+        bthread_yield(); //TODO perchè devo fare yield?
+        return 0;
+    }
+
     bthread_unblock_timer_signal();
     return 0;
 }

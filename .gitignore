@@ -114,3 +114,11 @@ CMakeLists.txt
 >>>>>>> Stashed changes
 bthread_test
 tqueue_test
+matrix_cube
+philosopher
+producer_consumer
+producer_consumer_cond
+readers_writers_1
+readers_writers_2
+readers_writers_3
+sleeping_barber
