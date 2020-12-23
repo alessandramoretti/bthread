@@ -14,6 +14,7 @@
 #include <unistd.h>
 #define STACK_SIZE 60000
 
+
 __bthread_scheduler_private* bthread_get_scheduler(){
     static __bthread_scheduler_private* scheduler=NULL;  //singleton pattern
     if(scheduler == NULL){
@@ -215,7 +216,13 @@ void random_scheduling(){
 
 void priority_scheduling(){
     __bthread_scheduler_private* scheduler = bthread_get_scheduler();
-    //TODO
+    __bthread_private* currentThread = (__bthread_private*)tqueue_get_data((scheduler->current_item));
+    if(currentThread->quantum_counter >= currentThread->priority){
+        currentThread->quantum_counter = 0;
+        scheduler->current_item = tqueue_at_offset(scheduler->current_item, 1);
+    }
+    __bthread_private* chosenThread = (__bthread_private*)tqueue_get_data((scheduler->current_item));
+    chosenThread->quantum_counter++;
 }
 
 void bthread_set_scheduling_policy(scheduling_policy policy){
@@ -227,10 +234,13 @@ void bthread_set_scheduling_policy(scheduling_policy policy){
         case RANDOM:
             scheduler->scheduling_routine = &random_scheduling;
             break;
+        case PRIORITY:
+            scheduler->scheduling_routine = &priority_scheduling;
+            break;
     }
 }
 
-bthread_set_priority(bthread_t tid, unsigned int priority){
+void bthread_set_priority(bthread_t tid, unsigned int priority){
     if(priority > MAX_PRIORITY)
         priority = MAX_PRIORITY;
     __bthread_scheduler_private* scheduler = bthread_get_scheduler();
