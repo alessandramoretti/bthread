@@ -1,9 +1,11 @@
 #include <assert.h>
 #include <stdio.h>
 #include "bthread.h"
+#include "tmutex.h"
 
 bthread_t t1, t2, t3, t4,t5,t6,t7,t8,t9;
 unsigned int counter1, counter2;
+bthread_mutex_t mutex;
 
 void *thread1(void *arg){
     bthread_printf("Thread 1");
@@ -52,7 +54,7 @@ void *thread8(void *arg){
 }
 
 void *thread9(void *arg){
-    bthread_sleep(5000);
+    bthread_sleep(3000);
     bthread_cancel(t7);
     bthread_cancel(t8);
 }
@@ -119,13 +121,36 @@ void testPriorityScheduling(){
     assert(counter1 < counter2);
 
 }
+void *threadMutex(void *arg){
+    bthread_mutex_lock(&mutex);
+    bthread_printf("Thread %d \n", (int*)arg);
+    bthread_sleep(1000);
+    bthread_mutex_unlock(&mutex);
+}
+
+void testMutex(){
+    bthread_create(&t1,NULL,&threadMutex,(void*)1);
+    bthread_create(&t2,NULL,&threadMutex,(void*)2);
+
+    bthread_join(t1,NULL);
+    bthread_join(t2,NULL);
+}
+
+
+
 
 int main(){
+
+    bthread_mutex_init(&mutex, NULL);
+
     testCreateAndJoin();
     testSleep();
     testCancel();
     testPreemption();
     testRandomScheduling();
-    testPriorityScheduling();
+   testPriorityScheduling();
+    testMutex();
+
+    bthread_mutex_destroy(&mutex);
     return 0;
 }
