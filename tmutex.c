@@ -25,6 +25,7 @@ int bthread_mutex_destroy(bthread_mutex_t* m)
 int bthread_mutex_lock(bthread_mutex_t* m)
 {
     bthread_block_timer_signal();
+    trace("LOCK MUTEX\n");
     __bthread_scheduler_private* scheduler = bthread_get_scheduler();
     volatile __bthread_private* bthread = (__bthread_private*)
             tqueue_get_data(scheduler->current_item);
@@ -44,6 +45,7 @@ int bthread_mutex_lock(bthread_mutex_t* m)
 int bthread_mutex_trylock(bthread_mutex_t* m)
 {
     bthread_block_timer_signal();
+    trace("TRY-LOCK MUTEX\n");
     __bthread_scheduler_private* scheduler = bthread_get_scheduler();
     __bthread_private* bthread = (__bthread_private*) tqueue_get_data(scheduler->current_item);
     if (m->owner == NULL) {
@@ -58,6 +60,7 @@ int bthread_mutex_trylock(bthread_mutex_t* m)
 int bthread_mutex_unlock(bthread_mutex_t* m)
 {
     bthread_block_timer_signal();
+    trace("UNLOCK MUTEX\n");
     __bthread_scheduler_private* scheduler = bthread_get_scheduler();
     assert(m->owner != NULL);
     assert(m->owner == tqueue_get_data(scheduler->current_item));

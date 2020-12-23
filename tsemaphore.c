@@ -21,6 +21,7 @@ int bthread_sem_destroy(bthread_sem_t* m){
 
 int bthread_sem_wait(bthread_sem_t* m){
     bthread_block_timer_signal();
+    trace("SEM WAIT\n");
     __bthread_scheduler_private* scheduler = bthread_get_scheduler();
     volatile __bthread_private* bthread = (__bthread_private*)tqueue_get_data(scheduler->current_item);
 
@@ -36,6 +37,7 @@ int bthread_sem_wait(bthread_sem_t* m){
 
 int bthread_sem_post(bthread_sem_t* m){
     bthread_block_timer_signal();
+    trace("SEM POST\n");
     __bthread_scheduler_private* scheduler = bthread_get_scheduler();
     volatile __bthread_private* bthread = (__bthread_private*)tqueue_get_data(scheduler->current_item);
     __bthread_private* unlock = tqueue_pop(&m->waiting_list);

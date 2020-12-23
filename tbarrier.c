@@ -22,6 +22,7 @@ int bthread_barrier_destroy(bthread_barrier_t* b){
 
 int bthread_barrier_wait(bthread_barrier_t* b){
     bthread_block_timer_signal();
+    trace("BARRIER WAIT\n");
     __bthread_scheduler_private* scheduler = bthread_get_scheduler();
 
     b->barrier_size ++;

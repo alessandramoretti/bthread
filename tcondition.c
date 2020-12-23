@@ -19,7 +19,7 @@ int bthread_cond_destroy(bthread_cond_t* c){
 
 int bthread_cond_wait(bthread_cond_t* c, bthread_mutex_t* mutex){
     bthread_block_timer_signal();
-
+    trace("COND WAIT\n");
     bthread_mutex_unlock(mutex);
     __bthread_scheduler_private* scheduler = bthread_get_scheduler();
 
@@ -36,6 +36,7 @@ int bthread_cond_wait(bthread_cond_t* c, bthread_mutex_t* mutex){
 
 int bthread_cond_signal(bthread_cond_t* c){
     bthread_block_timer_signal();
+    trace("COND SIGNAL\n");
     __bthread_private* signal = tqueue_pop(&c->waiting_list);
 
     if(signal != NULL){
@@ -50,6 +51,7 @@ int bthread_cond_signal(bthread_cond_t* c){
 
 int bthread_cond_broadcast(bthread_cond_t* c){
     bthread_block_timer_signal();
+    trace("COND BROADCAST");
     while(tqueue_size(c->waiting_list)){
         __bthread_private* signal = tqueue_pop(&c->waiting_list);
         signal->state = __BTHREAD_READY;
