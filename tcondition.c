@@ -41,7 +41,7 @@ int bthread_cond_signal(bthread_cond_t* c){
 
     if(signal != NULL){
         signal->state = __BTHREAD_READY;
-        bthread_yield(); //TODO perchè devo fare yield?
+        bthread_yield();
         return 0;
     }
 
