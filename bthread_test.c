@@ -157,9 +157,11 @@ void testBarrier(){
 }
 
 void *threadConditionWait(void *arg){
+    bthread_mutex_lock(&mutex);
     bthread_printf("Thread %d wait on condition\n", (int*)arg);
     bthread_cond_wait(&condition,&mutex);
     bthread_printf("Thread %d wake up\n", (int*)arg);
+    bthread_mutex_unlock(&mutex);
 }
 
 void *threadConditionSignal(void *arg){
