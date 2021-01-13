@@ -6,70 +6,60 @@
 #include "../src/tcondition.h"
 #include "../src/tsemaphore.h"
 
-bthread_t t1, t2, t3, t4,t5,t6,t7,t8,t9;
+bthread_t t1, t2, t3, t4,t5;
 unsigned int counter1, counter2;
 bthread_mutex_t mutex;
 bthread_barrier_t barrier;
 bthread_cond_t condition;
 bthread_sem_t semaphore;
 
-void *thread1(void *arg){
-    bthread_printf("Thread 1");
+void *printStringThread(void *arg){
+    bthread_printf("%s\n", (char*)arg);
     return (void*) 42;
 }
 
-void *thread2(void *arg){
-    bthread_printf("Thread 2");
-    return NULL;
-}
-
-void *thread3(void *arg){
-    bthread_printf("Thread 3");
+void *sleepingThread(void *arg){
     bthread_sleep(2000);
     return NULL;
 }
 
-void *thread4(void *arg){
+void *testCancelThread(void *arg){
     while(1){
         bthread_testcancel();
     }
 }
 
-void *thread5(void *arg){
-    while(1){
-        bthread_testcancel();
-    }
-}
 
-void *thread6(void *arg){
+void *cancelThread(void *arg){
     bthread_cancel(t5);
 }
 
-void *thread7(void *arg){
+void *counterThread1(void *arg){
     while(1){
         counter1++;
         bthread_testcancel();
     }
 }
 
-void *thread8(void *arg){
+void *counterThread2(void *arg){
     while(1){
         counter2++;
         bthread_testcancel();
     }
 }
 
-void *thread9(void *arg){
+void *cancelAllThread(void *arg){
     bthread_sleep(3000);
-    bthread_cancel(t7);
-    bthread_cancel(t8);
+    bthread_cancel(t1);
+    bthread_cancel(t2);
 }
 
 
 
 void testCreateAndJoin(){
-    bthread_create(&t1,NULL,&thread1,NULL);
-    bthread_create(&t2,NULL,&thread2,NULL);
+    bthread_printf("--- Test Create and Join ---\n You should see two thread printf\n");
+    bthread_create(&t1, NULL, &printStringThread, "Thread 1");
+    bthread_create(&t2, NULL, &printStringThread, "Thread 2");
     assert(t1 == 0);
     assert(t2 == t1+1);
     int status;
@@ -79,32 +69,35 @@ void testCreateAndJoin(){
 }
 
 void testSleep(){
-    bthread_create(&t3,NULL,&thread3,NULL);
-    bthread_join(t3,NULL);
+    bthread_printf("--- Test Sleep --- \n It should ends in 2 seconds\n");
+    bthread_create(&t1, NULL, &sleepingThread, NULL);
+    bthread_join(t1,NULL);
 }
 
 void testCancel(){
+    bthread_printf("--- Test Cancel --- \n If it ends it works\n");
     int status;
-    bthread_create(&t4,NULL,&thread4,NULL);
-    bthread_cancel(t4);
-    bthread_join(t4,(void**) &status);
+    bthread_create(&t1, NULL, &testCancelThread, NULL);
+    bthread_cancel(t1);
+    bthread_join(t1,(void**) &status);
     assert(status == -1);
 }
 
 void testPreemption(){
-    bthread_create(&t6,NULL,&thread6,NULL);
-    bthread_create(&t5,NULL,&thread5,NULL);
+    bthread_printf("--- Test Preemption --- \n If it ends it works\n");
+    bthread_create(&t4, NULL, &cancelThread, NULL);
+    bthread_create(&t5,NULL,&testCancelThread,NULL);
 
+    bthread_join(t4,NULL);
     bthread_join(t5,NULL);
-    bthread_join(t6,NULL);
 
 }
 
 
 void testRandomScheduling(){
-    printf("TEST RANDOM:\n");
-    bthread_create(&t1,NULL,&thread1,NULL);
-    bthread_create(&t2,NULL,&thread2,NULL);
+    bthread_printf("--- Test Random Scheduling --- \n Thread should be scheduled in different order each time\n");
+    bthread_create(&t1, NULL, &printStringThread, "Thread 1");
+    bthread_create(&t2, NULL, &printStringThread, "Thread 2");
 
     bthread_set_scheduling_policy(RANDOM);
     bthread_join(t1,NULL);
@@ -112,17 +105,18 @@ void testRandomScheduling(){
 }
 
 void testPriorityScheduling(){
-    bthread_create(&t7,NULL,&thread7,NULL);
-    bthread_create(&t8,NULL,&thread8,NULL);
-    bthread_create(&t9,NULL,&thread9,NULL);
+    bthread_printf("--- Test Priority Scheduling --- \n");
+    bthread_create(&t1, NULL, &counterThread1, NULL);
+    bthread_create(&t2, NULL, &counterThread2, NULL);
+    bthread_create(&t3, NULL, &cancelAllThread, NULL);
 
-    bthread_set_priority(t7,2);
-    bthread_set_priority(t8,MAX_PRIORITY);
-    //thread t9 has default priority
+    bthread_set_priority(t1,2);
+    bthread_set_priority(t2,MAX_PRIORITY);
+    //thread t3 has default priority
     bthread_set_scheduling_policy(PRIORITY);
-    bthread_join(t7,NULL);
-    bthread_join(t8,NULL);
-    bthread_join(t9,NULL);
+    bthread_join(t1,NULL);
+    bthread_join(t2,NULL);
+    bthread_join(t3,NULL);
 
     assert(counter1 < counter2);
 
@@ -135,6 +129,7 @@ void *threadMutex(void *arg){
 }
 
 void testMutex(){
+    bthread_printf("--- Test Mutex --- \n It should execute both thread\n");
     bthread_create(&t1,NULL,&threadMutex,(void*)1);
     bthread_create(&t2,NULL,&threadMutex,(void*)2);
 
@@ -149,6 +144,7 @@ void *threadBarrier(void *arg){
 }
 
 void testBarrier(){
+    bthread_printf("--- Test Barrier --- \n It should execute both thread. A thread wait for the other\n");
     bthread_create(&t1,NULL,&threadBarrier,(void*)1);
     bthread_create(&t2,NULL,&threadBarrier,(void*)2);
 
@@ -177,6 +173,7 @@ void *threadConditionBroadcast(void *arg){
 }
 
 void testCondition(){
+    bthread_printf("--- Test Condition --- \n t1, t2 and t3 should wait on condition. t4 should signal and wake t1. t5 should broadcast and qait t2 and t3\n");
     bthread_create(&t1,NULL,&threadConditionWait,(void*)1);
     bthread_create(&t2,NULL,&threadConditionWait,(void*)2);
     bthread_create(&t3,NULL,&threadConditionWait,(void*)3);
@@ -202,6 +199,7 @@ void *threadSemaphore(void *arg){
 }
 
 void testSemaphore(){
+    bthread_printf("--- Test Semaphore --- \n It should execute all threads\n");
     bthread_create(&t1,NULL,&threadSemaphore,(void*)1);
     bthread_create(&t2,NULL,&threadSemaphore,(void*)2);
     bthread_create(&t3,NULL,&threadSemaphore,(void*)3);
