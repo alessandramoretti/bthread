@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "bthread.h"
-#include "tmutex.h"
-#include "tsemaphore.h"
+#include "../src/bthread.h"
+#include "../src/tmutex.h"
+#include "../src/tsemaphore.h"
 #include <stdbool.h>
 
 #define CHAIRS 3

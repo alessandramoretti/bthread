@@ -1,5 +1,5 @@
-#include "bthread.h"
-#include "tbarrier.h"
+#include "../src/bthread.h"
+#include "../src/tbarrier.h"
 #include <stdio.h>
 
 double A[3][3] = { { 1, 2, 3 }, { 4, 5, 6 }, { 7, 8, 9} };

@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "bthread.h"
-#include "tsemaphore.h"
+#include "../src/bthread.h"
+#include "../src/tsemaphore.h"
 
+bthread_sem_t arrival_order;
 bthread_sem_t readers_count_sem;
 bthread_sem_t db_sem;
 int readers_count = 0;
+int writers_count = 0;
 
 void read_data()
 {
@@ -20,6 +22,7 @@ void process_data()
 void* reader(void* arg)
 {
     for(;;) {
+        bthread_sem_wait(&arrival_order);
         bthread_sem_wait(&readers_count_sem);
         readers_count += 1;
         if (readers_count == 1) {
@@ -27,6 +30,8 @@ void* reader(void* arg)
         }
         bthread_printf("There are %d readers\n", readers_count);
         bthread_sem_post(&readers_count_sem);
+        bthread_sem_post(&arrival_order);
+
         read_data();
         bthread_sem_wait(&readers_count_sem);
         readers_count -= 1;
@@ -54,18 +59,22 @@ void* writer(void* arg)
 {
     for(;;) {
         produce_data();
+
+        bthread_sem_wait(&arrival_order);
         bthread_sem_wait(&db_sem);
+        bthread_sem_post(&arrival_order);
         write_data();
         bthread_sem_post(&db_sem);
+
         bthread_sleep(1000);
     }
 }
-
 
 int main(int argc, char *argv[])
 {
     bthread_sem_init(&db_sem, 0, 1);
     bthread_sem_init(&readers_count_sem, 0, 1);
+    bthread_sem_init(&arrival_order, 0, 1);
 
     bthread_t readers[5];
     bthread_t writers[5];
@@ -81,6 +90,7 @@ int main(int argc, char *argv[])
         bthread_join(writers[i], NULL);
     }
 
+    bthread_sem_destroy(&arrival_order);
     bthread_sem_destroy(&readers_count_sem);
     bthread_sem_destroy(&db_sem);
 
